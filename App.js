@@ -32,14 +32,50 @@ const App = () => {
     setTimeout(() => {
       const results = legalActsData.filter(act => {
         const searchLower = query.toLowerCase();
-        return (
-          act.title.toLowerCase().includes(searchLower) ||
-          act.description.toLowerCase().includes(searchLower) ||
-          (act.keywords && act.keywords.some(keyword => 
-            keyword.toLowerCase().includes(searchLower)
-          ))
+        
+        // Check title, description, and keywords
+        const titleMatch = act.title.toLowerCase().includes(searchLower);
+        const descMatch = act.description.toLowerCase().includes(searchLower);
+        const keywordMatch = act.keywords && act.keywords.some(keyword => 
+          keyword.toLowerCase().includes(searchLower)
         );
-      });
+        
+        // Check sections content if available
+        const sectionMatch = act.sections && act.sections.some(section => 
+          section.title.toLowerCase().includes(searchLower) || 
+          section.content.toLowerCase().includes(searchLower)
+        );
+        
+        // Check case laws if available
+        const caseMatch = act.relevantCases && act.relevantCases.some(caseItem => 
+          caseItem.title.toLowerCase().includes(searchLower) || 
+          caseItem.description.toLowerCase().includes(searchLower)
+        );
+        
+        return titleMatch || descMatch || keywordMatch || sectionMatch || caseMatch;
+      })
+      // Add relevance score and sort by it
+      .map(act => {
+        let score = 0;
+        const searchLower = query.toLowerCase();
+        
+        // Higher score for title matches
+        if (act.title.toLowerCase().includes(searchLower)) score += 10;
+        
+        // Medium score for description and keywords
+        if (act.description.toLowerCase().includes(searchLower)) score += 5;
+        if (act.keywords && act.keywords.some(k => k.toLowerCase().includes(searchLower))) score += 7;
+        
+        // Lower score for section matches
+        if (act.sections && act.sections.some(s => s.title.toLowerCase().includes(searchLower))) score += 3;
+        if (act.sections && act.sections.some(s => s.content.toLowerCase().includes(searchLower))) score += 2;
+        
+        // Lower score for case matches
+        if (act.relevantCases && act.relevantCases.some(c => c.title.toLowerCase().includes(searchLower))) score += 3;
+        
+        return { ...act, relevanceScore: score };
+      })
+      .sort((a, b) => b.relevanceScore - a.relevanceScore);
       
       setSearchResults(results);
       setIsLoading(false);
@@ -54,8 +90,24 @@ const App = () => {
       "Consumer Rights",
       "Traffic Violation",
       "Employment Issue",
-      "Cybercrime"
+      "Cybercrime",
+      "Rent Control",
+      "Family Inheritance",
+      "Medical Negligence",
+      "Land Encroachment",
+      "Business Contract",
+      "Environmental Complaint"
     ];
+    
+    // Group situations by category for better organization
+    const categorizedSituations = {
+      "Personal": ["Domestic Violence", "Family Inheritance"],
+      "Property": ["Property Dispute", "Land Encroachment", "Rent Control"],
+      "Professional": ["Employment Issue", "Business Contract", "Medical Negligence"],
+      "Consumer": ["Consumer Rights", "Traffic Violation"],
+      "Digital": ["Cybercrime"],
+      "Environment": ["Environmental Complaint"]
+    };
     
     // Get first 3 acts for popular section
     const popularActs = legalActsData.slice(0, 3);
